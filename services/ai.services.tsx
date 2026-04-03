@@ -7,7 +7,7 @@ export const aiAgentAPI = async ({ question, history }: { question: string, hist
     history: history // Send last 5 messages
   };
   try {
-    const res = await apiClient.post(`http://${serverIp}:8000/ask`, body);
+    const res = await apiClient.post(`${serverIp}/ask`, body);
     console.log(res);
     return res;
   } catch (error) {

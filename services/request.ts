@@ -1,7 +1,7 @@
 import axios, { AxiosResponse, AxiosError } from 'axios';
 
 // Replace with your Mac's current local IP
-const BASE_URL = 'http://192.168.1.15:8000'; 
+const BASE_URL = process.env.NEXT_PUBLIC_BASE_API_URL; 
 
 const apiClient = axios.create({
   baseURL: BASE_URL,
