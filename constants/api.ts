@@ -1,1 +1,1 @@
-export const serverIp = "192.168.31.231";
+export const serverIp = process.env.NEXT_PUBLIC_BASE_API_URL;
