@@ -1,7 +1,10 @@
 import axios, { AxiosResponse, AxiosError } from 'axios';
 
-// Replace with your Mac's current local IP
-const BASE_URL = process.env.NEXT_PUBLIC_BASE_API_URL; 
+const isLocal = typeof window !== 'undefined' && window.location.hostname === 'localhost';
+  
+  const BASE_URL = isLocal 
+    ? "http://192.168.31.231:8000" // Use local for development
+    : process.env.NEXT_PUBLIC_SERVER_IP; // Use ngrok/cloud for Vercel; 
 
 const apiClient = axios.create({
   baseURL: BASE_URL,

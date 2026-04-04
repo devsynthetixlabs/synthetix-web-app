@@ -1,4 +1,3 @@
-import { serverIp } from "@/constants/api";
 import apiClient from "./request";
 
 export const aiAgentAPI = async ({ question, history }: { question: string, history: object[] }) => {
@@ -7,9 +6,9 @@ export const aiAgentAPI = async ({ question, history }: { question: string, hist
     history: history // Send last 5 messages
   };
   try {
-    const res = await apiClient.post(`${serverIp}/ask`, body);
+    const res = await apiClient.post(`/ask`, body);
     console.log(res);
-    return res;
+    return res.answer;
   } catch (error) {
     console.error("Error aiAgentAPI", { error });
     return null;
