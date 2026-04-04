@@ -4,7 +4,7 @@ const isLocal = typeof window !== 'undefined' && window.location.hostname === 'l
   
   const BASE_URL = isLocal 
     ? "http://192.168.31.231:8000" // Use local for development
-    : process.env.NEXT_PUBLIC_SERVER_IP; // Use ngrok/cloud for Vercel; 
+    : process.env.NEXT_PUBLIC_BASE_API_URL; // Use ngrok/cloud for Vercel; 
 
 const apiClient = axios.create({
   baseURL: BASE_URL,
