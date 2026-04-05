@@ -8,6 +8,9 @@ export const aiAgentAPI = async ({ question, history }: { question: string, hist
   try {
     const res = await apiClient.post(`/ask`, body);
     console.log(res);
+    if(typeof res.answer === 'string') {
+      return res
+    }
     return res.answer;
   } catch (error) {
     console.error("Error aiAgentAPI", { error });
