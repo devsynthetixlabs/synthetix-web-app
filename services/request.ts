@@ -2,7 +2,6 @@ import axios, { AxiosResponse, AxiosError, InternalAxiosRequestConfig } from 'ax
 import Cookies from 'js-cookie';
 
 const isLocal = typeof window !== 'undefined' && window.location.hostname === 'localhost';
-  
 const BASE_URL = isLocal 
   ? "http://192.168.31.231:8000" 
   : process.env.NEXT_PUBLIC_BASE_API_URL; 
@@ -15,41 +14,102 @@ const apiClient = axios.create({
   },
 });
 
+// Flag to prevent multiple refresh calls at once
+let isRefreshing = false;
+let failedQueue: any[] = [];
+
+const processQueue = (error: any, token: string | null = null) => {
+  failedQueue.forEach((prom) => {
+    if (error) {
+      prom.reject(error);
+    } else {
+      prom.resolve(token);
+    }
+  });
+  failedQueue = [];
+};
+
 // --- REQUEST INTERCEPTOR ---
-// This runs every time you call apiClient.get/post/etc.
 apiClient.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
-    // 1. Grab the token from the cookie we set in AuthContext
     const token = Cookies.get('auth_token');
-
-    // 2. If the token exists, inject it into the headers
     if (token && config.headers) {
       config.headers.Authorization = `Bearer ${token}`;
     }
-    
     return config;
   },
-  (error) => {
-    return Promise.reject(error);
-  }
+  (error) => Promise.reject(error)
 );
 
 // --- RESPONSE INTERCEPTOR ---
 apiClient.interceptors.response.use(
-  (response: AxiosResponse) => {
-    return response.data;
-  },
-  (error: AxiosError) => {
-    // If the backend returns 401, it means the token is expired or invalid
-    if (error.response?.status === 401) {
-      console.warn("Unauthorized! Redirecting to login...");
-      // Optional: Clear cookies and redirect to login
-      // Cookies.remove('auth_token');
-      // window.location.href = '/login';
+  (response: AxiosResponse) => response.data,
+  async (error: AxiosError) => {
+    const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
+
+    // If 401 error and not already retrying
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      
+      if (isRefreshing) {
+        // Queue the request while the token is being refreshed
+        return new Promise((resolve, reject) => {
+          failedQueue.push({ resolve, reject });
+        })
+          .then((token) => {
+            if (originalRequest.headers) {
+              originalRequest.headers.Authorization = `Bearer ${token}`;
+            }
+            return apiClient(originalRequest);
+          })
+          .catch((err) => Promise.reject(err));
+      }
+
+      originalRequest._retry = true;
+      isRefreshing = true;
+
+      const refreshToken = Cookies.get('refresh_token');
+
+      if (!refreshToken) {
+        // No refresh token found, force logout
+        Cookies.remove('auth_token');
+        if (typeof window !== 'undefined') window.location.href = '/login';
+        return Promise.reject(error);
+      }
+
+      try {
+        // Call your new FastAPI refresh endpoint
+        const response = await axios.post(`${BASE_URL}/auth/refresh`, {
+          refresh_token: refreshToken
+        });
+
+        const { access_token } = response.data;
+
+        // 1. Update Cookie
+        Cookies.set('auth_token', access_token, { expires: 1/24 }); // 1 hour
+
+        // 2. Update apiClient headers for future requests
+        apiClient.defaults.headers.common['Authorization'] = `Bearer ${access_token}`;
+
+        // 3. Process the queue of waiting requests
+        processQueue(null, access_token);
+
+        // 4. Retry the original failed request
+        if (originalRequest.headers) {
+            originalRequest.headers.Authorization = `Bearer ${access_token}`;
+        }
+        return apiClient(originalRequest);
+      } catch (refreshError) {
+        processQueue(refreshError, null);
+        Cookies.remove('auth_token');
+        Cookies.remove('refresh_token');
+        if (typeof window !== 'undefined') window.location.href = '/login';
+        return Promise.reject(refreshError);
+      } finally {
+        isRefreshing = false;
+      }
     }
-    
+
     const message = (error.response?.data as any)?.detail || error.message;
-    console.error('[Network Error]:', message);
     return Promise.reject(message);
   }
 );

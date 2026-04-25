@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import styles from '@/styles/auth.module.css'
 
 export default function WelcomePage() {
   const router = useRouter();
@@ -125,13 +126,13 @@ export default function WelcomePage() {
 
       {/* Header */}
       <header
-        className="fade-in"
+        className={styles.header}
         style={{
           borderBottom: "1px solid var(--border)",
           background: "var(--surface)",
         }}
       >
-        <div className="mx-auto px-8 py-8 flex items-center justify-around">
+        <div className={styles.headerInner}>
           {/* Logo */}
           <div className="flex items-center gap-3">
             <div

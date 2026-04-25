@@ -40,10 +40,8 @@ export default function LoginPage() {
       <style>{``}</style>
 
       {/* Header — matches welcome page */}
-      <header style={{ borderBottom: '1px solid var(--border)', background: 'var(--surface)' }}>
-        <div
-          className="mx-auto px-8 py-8 flex items-center justify-around"
-        >
+      <header className={styles.header}>
+        <div className={styles.headerInner}>
           <a href="/" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 12 }}>
             <div
               style={{
