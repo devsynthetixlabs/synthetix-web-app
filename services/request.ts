@@ -8,7 +8,7 @@ const BASE_URL = isLocal
 
 const apiClient = axios.create({
   baseURL: BASE_URL,
-  timeout: 15000,
+  timeout: 120000,
   headers: {
     'Content-Type': 'application/json',
   },
