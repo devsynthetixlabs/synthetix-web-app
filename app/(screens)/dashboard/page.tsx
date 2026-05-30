@@ -1,6 +1,6 @@
 "use client";
 import { useAuth } from "@/context/AuthContext";
-import { aiAgentAPI } from "@/services/ai.services";
+import { aiAgentAPI, uploadKnowledgeDoc } from "@/services/ai.services";
 import { useState, useRef, useEffect } from "react";
 import { v4 as uuidv4 } from "uuid";
 import AppHeader from "@/components/AppHeader";
@@ -44,7 +44,9 @@ export default function OrgIQChat() {
 
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [uploadStatus, setUploadStatus] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     scrollRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -88,6 +90,21 @@ export default function OrgIQChat() {
     }
   };
 
+  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.type !== 'application/pdf') {
+      setUploadStatus('Only PDF files are supported.');
+      setTimeout(() => setUploadStatus(null), 3000);
+      return;
+    }
+    setUploadStatus('Uploading...');
+    const result = await uploadKnowledgeDoc(file);
+    setUploadStatus(result.status === 'success' ? 'Indexed successfully.' : result.message);
+    setTimeout(() => setUploadStatus(null), 4000);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
   const startNewChat = () => {
     setMessages([
       {
@@ -108,6 +125,19 @@ export default function OrgIQChat() {
         subtitle="Sales & Policy Assistant"
       >
         <div className={styles.headerRight}>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="application/pdf"
+            onChange={handleUpload}
+            style={{ display: 'none' }}
+          />
+          <button onClick={() => fileInputRef.current?.click()} className={styles.newChatBtn}>
+            <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+            </svg>
+            Upload PDF
+          </button>
           <button onClick={startNewChat} className={styles.newChatBtn}>
             <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
@@ -120,6 +150,11 @@ export default function OrgIQChat() {
         </div>
       </AppHeader>
 
+      {uploadStatus && (
+        <div className={styles.uploadBanner}>
+          {uploadStatus}
+        </div>
+      )}
       <div className={styles.messagesArea}>
         <div className={styles.messagesInner}>
           {isFirstMessage && (
